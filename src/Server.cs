@@ -19,14 +19,20 @@ switch (requestedURL[1]){
         await socket.SendAsync(Encoding.UTF8.GetBytes("HTTP/1.1 200 OK\r\n\r\n"));
         break;
     case "echo":
-        string response = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: " + requestedURL[2].Length.ToString() + "\r\n\r\n" + requestedURL[2];
-        await socket.SendAsync(Encoding.UTF8.GetBytes(response));
+        string echoResponse = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: " + requestedURL[2].Length.ToString() + "\r\n\r\n" + requestedURL[2];
+        await socket.SendAsync(Encoding.UTF8.GetBytes(echoResponse));
+        break;
+    case "user-agent":
+        int agentIndex = Array.FindIndex(data, str => str.StartsWith("User-Agent", StringComparison.InvariantCultureIgnoreCase));
+        string userAgent = data[agentIndex].Split(":")[1].Trim();
+        string agentResponse = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: " + userAgent.Length.ToString() + "\r\n\r\n" + userAgent;
+        await socket.SendAsync(Encoding.UTF8.GetBytes(agentResponse));
         break;
     default:
         await socket.SendAsync(Encoding.UTF8.GetBytes("HTTP/1.1 404 Not Found\r\n\r\n"));
         break;
-}
-socket.Close();
+    }
+    socket.Close();
 }
 
 
