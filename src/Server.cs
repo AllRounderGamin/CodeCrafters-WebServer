@@ -1,3 +1,5 @@
+using System.Data.SqlTypes;
+using System.IO.Compression;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -19,9 +21,10 @@ async static void handleConn(Socket socket){
     string requestType = data[0].Split(" ")[0];
     int encodingIndex = Array.FindIndex(data, str => str.StartsWith("Accept-Encoding", StringComparison.InvariantCultureIgnoreCase));
     string encodingMes = "";
+    string encodingMethod = "";
     if (encodingIndex != -1){
         if (data[encodingIndex].Split(":")[1].Contains("gzip", StringComparison.InvariantCultureIgnoreCase)){
-            string encodingMethod = "gzip";
+            encodingMethod = "gzip";
             encodingMes = "Content-Encoding: gzip\r\n";
         }
     }
@@ -32,8 +35,21 @@ async static void handleConn(Socket socket){
             await socket.SendAsync(Encoding.UTF8.GetBytes("HTTP/1.1 200 OK\r\n\r\n"));
             break;
         case "echo":
-            string echoResponse = $"HTTP/1.1 200 OK\r\n{encodingMes}Content-Type: text/plain\r\nContent-Length: " + requestedURL[2].Length + "\r\n\r\n" + requestedURL[2];
-            await socket.SendAsync(Encoding.UTF8.GetBytes(echoResponse));
+            if (encodingMethod == "gzip"){
+                byte[] mesBytes = Encoding.UTF8.GetBytes(requestedURL[2]);
+                using MemoryStream mem = new();
+                using GZipStream gzip = new(mem, CompressionMode.Compress);
+                gzip.Write(mesBytes);
+                gzip.Flush();
+                gzip.Close();
+                byte[] compressedBytes = mem.ToArray();
+                byte[] compressedEchoResponse = Encoding.UTF8.GetBytes($"HTTP/1.1 200 OK\r\n{encodingMes}Content-Type: text/plain\r\nContent-Length: " + compressedBytes.Length + "\r\n\r\n");
+                compressedEchoResponse = [..compressedEchoResponse, ..compressedBytes];
+                await socket.SendAsync(compressedEchoResponse);
+            } else{
+                string echoResponse = $"HTTP/1.1 200 OK\r\n{encodingMes}Content-Type: text/plain\r\nContent-Length: " + requestedURL[2].Length + "\r\n\r\n" + requestedURL[2];
+                await socket.SendAsync(Encoding.UTF8.GetBytes(echoResponse));
+            }
             break;
         case "user-agent":
             int agentIndex = Array.FindIndex(data, str => str.StartsWith("User-Agent", StringComparison.InvariantCultureIgnoreCase));
