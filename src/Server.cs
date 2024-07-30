@@ -33,7 +33,7 @@ async static void handleConn(Socket socket){
             await socket.SendAsync(Encoding.UTF8.GetBytes(agentResponse));
             break;
         case "files":
-            string fileUrl = "/tmp/" + requestedURL[2];
+            string fileUrl = Environment.GetCommandLineArgs()[2] + requestedURL[2];
             if (!File.Exists(fileUrl)){
                 await socket.SendAsync(Encoding.UTF8.GetBytes("HTTP/1.1 404 Not Found\r\n\r\n"));
             }
