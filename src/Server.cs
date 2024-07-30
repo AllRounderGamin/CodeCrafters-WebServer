@@ -20,7 +20,7 @@ async static void handleConn(Socket socket){
     int encodingIndex = Array.FindIndex(data, str => str.StartsWith("Accept-Encoding", StringComparison.InvariantCultureIgnoreCase));
     string encodingMes = "";
     if (encodingIndex != -1){
-        if (data[encodingIndex].Split(":")[1].Trim() == "gzip"){
+        if (data[encodingIndex].Split(":")[1].Contains("gzip", StringComparison.InvariantCultureIgnoreCase)){
             string encodingMethod = "gzip";
             encodingMes = "Content-Encoding: gzip\r\n";
         }
