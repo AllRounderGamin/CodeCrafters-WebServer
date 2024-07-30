@@ -44,8 +44,7 @@ async static void handleConn(Socket socket){
                 await socket.SendAsync(Encoding.UTF8.GetBytes(fileResponse));
             } else if (requestType == "POST"){
                 string fileUrl = Environment.GetCommandLineArgs()[2] + requestedURL[2];
-                StreamWriter file = new(fileUrl);
-                file.WriteLine(data.Last());
+                File.WriteAllText(fileUrl, data[^1]);
                 await socket.SendAsync(Encoding.UTF8.GetBytes("HTTP/1.1 201 Created\r\n\r\n"));
             }
             break;
