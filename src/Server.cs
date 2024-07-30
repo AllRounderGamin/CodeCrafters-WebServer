@@ -16,6 +16,7 @@ async static void handleConn(Socket socket){
     string message = Encoding.UTF8.GetString(buffer);
     string[] data = message.Split("\r\n");
     string[] requestedURL = data[0].Split(" ")[1].Split("/");
+    string requestType = data[0].Split(" ")[0];
 
 
     switch (requestedURL[1]){
@@ -33,13 +34,20 @@ async static void handleConn(Socket socket){
             await socket.SendAsync(Encoding.UTF8.GetBytes(agentResponse));
             break;
         case "files":
-            string fileUrl = Environment.GetCommandLineArgs()[2] + requestedURL[2];
-            if (!File.Exists(fileUrl)){
-                await socket.SendAsync(Encoding.UTF8.GetBytes("HTTP/1.1 404 Not Found\r\n\r\n"));
+            if (requestType == "GET"){
+                string fileUrl = Environment.GetCommandLineArgs()[2] + requestedURL[2];
+                if (!File.Exists(fileUrl)){
+                    await socket.SendAsync(Encoding.UTF8.GetBytes("HTTP/1.1 404 Not Found\r\n\r\n"));
+                }
+                string fileContent = File.ReadAllText(fileUrl);
+                string fileResponse = "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: " + fileContent.Length + "\r\n\r\n" + fileContent;
+                await socket.SendAsync(Encoding.UTF8.GetBytes(fileResponse));
+            } else if (requestType == "POST"){
+                string fileUrl = Environment.GetCommandLineArgs()[2] + requestedURL[2];
+                StreamWriter file = new(fileUrl);
+                file.WriteLine(data.Last());
+                await socket.SendAsync(Encoding.UTF8.GetBytes("HTTP/1.1 201 Created\r\n\r\n"));
             }
-            string fileContent = File.ReadAllText(fileUrl);
-            string fileResponse = "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: " + fileContent.Length + "\r\n\r\n" + fileContent;
-            await socket.SendAsync(Encoding.UTF8.GetBytes(fileResponse));
             break;
         default:
             await socket.SendAsync(Encoding.UTF8.GetBytes("HTTP/1.1 404 Not Found\r\n\r\n"));
